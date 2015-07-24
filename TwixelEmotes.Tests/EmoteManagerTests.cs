@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -15,6 +15,17 @@ namespace TwixelEmotes.Tests
             {
                 Task.Run(async () => { await EmoteManager.Initialize(); }).Wait();
             }
+        }
+
+        [Fact]
+        public void InitializeTest()
+        {
+            Assert.True(EmoteManager.Initialized);
+            Assert.True(EmoteManager.ChannelsBySet.ContainsKey(0));
+            Assert.True(EmoteManager.ChannelsByName.ContainsKey("--global--"));
+            Emote kappa = EmoteManager.ChannelsByName["--global--"].Emotes.FirstOrDefault(e => e.Code == "Kappa");
+            Assert.NotNull(kappa);
+            Assert.Equal<long>(25, kappa.Id);
         }
 
         [Fact]
@@ -65,14 +76,14 @@ namespace TwixelEmotes.Tests
         }
 
         [Fact]
-        public void InitializeTest()
+        public async void RetrieveBasicEmotesTest()
         {
-            Assert.True(EmoteManager.Initialized);
-            Assert.True(EmoteManager.ChannelsBySet.ContainsKey(0));
-            Assert.True(EmoteManager.ChannelsByName.ContainsKey("--global--"));
-            Emote kappa = EmoteManager.ChannelsByName["--global--"].Emotes.FirstOrDefault(e => e.Code == "Kappa");
-            Assert.NotNull(kappa);
-            Assert.Equal<long>(25, kappa.Id);
+            Dictionary<long, Emote> basicEmotes = await EmoteManager.RetrieveBasicEmotes();
+            Regex regex = new Regex(basicEmotes[12].Code);
+            Match match = regex.Match(":-P");
+            Assert.True(match.Success);
+            Match match2 = regex.Match(":p");
+            Assert.True(match2.Success);
         }
     }
 }
