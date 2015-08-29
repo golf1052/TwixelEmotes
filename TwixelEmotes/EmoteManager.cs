@@ -85,7 +85,7 @@ namespace TwixelEmotes
             UseHttps = true;
         }
 
-        public static async Task Initialize()
+        public static async Task Initialize(EmoteDataCache dataCache = null)
         {
             globalChannel = new Channel();
             globalChannel.Title = "--global--";
@@ -103,7 +103,6 @@ namespace TwixelEmotes
             turboChannel33.Badge = null;
             turboChannel33.Set = 33;
 
-
             Channel turboChannel42 = new Channel();
             turboChannel42.Title = "--twitch-turbo--";
             turboChannel42.Link = null;
@@ -112,11 +111,23 @@ namespace TwixelEmotes
             turboChannel42.Badge = null;
             turboChannel42.Set = 42;
 
-            await RetrieveGlobalEmotes();
-            await RetrieveImages();
-            await RetrieveSets();
-            await RetrieveSubscriberEmotes();
-            await RetrieveBasicEmotes();
+            if (dataCache == null)
+            {
+                await RetrieveGlobalEmotes();
+                await RetrieveImages();
+                await RetrieveSets();
+                await RetrieveSubscriberEmotes();
+                await RetrieveBasicEmotes();
+            }
+            else
+            {
+                await LoadGlobalEmotesFromString(dataCache.GlobalString, dataCache.GlobalTime);
+                await LoadImagesFromString(dataCache.ImagesString, dataCache.ImagesTime);
+                await LoadSetsFromString(dataCache.SetsString, dataCache.SetsTime);
+                await LoadSubscriberEmotesFromString(dataCache.SubscriberString, dataCache.SubscriberTime);
+                await LoadBasicEmotesFromString(dataCache.Basic0String, dataCache.Basic33String, dataCache.Basic42String, dataCache.BasicTime);
+            }
+
             foreach (KeyValuePair<long, GlobalEmote> globalEmote in globalEmotes)
             {
                 globalChannel.Emotes.Add(emotes[globalEmote.Key]);
@@ -159,15 +170,22 @@ namespace TwixelEmotes
             Initialized = true;
         }
 
-        public static async Task LoadGlobalEmotesFromStream(Stream globalEmotesStream)
+        public static EmoteDataCache GetDataCache()
         {
-            using (StreamReader reader = new StreamReader(globalEmotesStream))
-            {
-                JsonCache.globalString = await reader.ReadToEndAsync();
-                globalEmotes.Clear();
-                globalEmotesByCode.Clear();
-                LoadGlobalEmotes(JsonCache.globalString);
-            }
+            return new EmoteDataCache(JsonCache.globalString, JsonCache.globalLocalDate.Value.ToString("o"),
+                JsonCache.subscriberString, JsonCache.subscriberLocalDate.Value.ToString("o"),
+                JsonCache.setsString, JsonCache.setsLocalDate.Value.ToString("o"),
+                JsonCache.imagesString, JsonCache.imagesLocalDate.Value.ToString("o"),
+                JsonCache.basic0String, JsonCache.basic33String, JsonCache.basic42String, JsonCache.basicLocalDate.Value.ToString("o"));
+        }
+
+        public static async Task LoadGlobalEmotesFromString(string globalEmotesString, DateTime? globalTime)
+        {
+            JsonCache.globalString = globalEmotesString;
+            JsonCache.globalLocalDate = globalTime;
+            globalEmotes.Clear();
+            globalEmotesByCode.Clear();
+            await RetrieveGlobalEmotes();
         }
 
         public static async Task<EmoteResponse<Dictionary<string, GlobalEmote>>> RetrieveGlobalEmotes()
@@ -197,6 +215,10 @@ namespace TwixelEmotes
             }
             else
             {
+                if (!JsonCache.globalServerDate.HasValue)
+                {
+                    return LoadGlobalEmotes(JsonCache.globalString);
+                }
                 return new EmoteResponse<Dictionary<string, GlobalEmote>>(JsonCache.globalServerDate.Value, globalEmotesByCode);
             }
         }
@@ -217,15 +239,13 @@ namespace TwixelEmotes
             return new EmoteResponse<Dictionary<string, GlobalEmote>>(JsonCache.globalServerDate.Value, globalEmotesByCode);
         }
 
-        public static async Task LoadSubscriberEmotesFromStream(Stream subscriberEmotesStream)
+        public static async Task LoadSubscriberEmotesFromString(string subscriberEmotesString, DateTime? subscriberTime)
         {
-            using (StreamReader reader = new StreamReader(subscriberEmotesStream))
-            {
-                JsonCache.subscriberString = await reader.ReadToEndAsync();
-                ChannelsByName.Clear();
-                ChannelsBySet.Clear();
-                LoadSubscriberEmotes(JsonCache.subscriberString);
-            }
+            JsonCache.subscriberString = subscriberEmotesString;
+            JsonCache.subscriberLocalDate = subscriberTime;
+            ChannelsByName.Clear();
+            ChannelsBySet.Clear();
+            await RetrieveSubscriberEmotes();
         }
 
         public static async Task<EmoteResponse<Dictionary<string, Channel>>> RetrieveSubscriberEmotes()
@@ -255,6 +275,10 @@ namespace TwixelEmotes
             }
             else
             {
+                if (!JsonCache.subscriberServerDate.HasValue)
+                {
+                    return LoadSubscriberEmotes(JsonCache.subscriberString);
+                }
                 return new EmoteResponse<Dictionary<string, Channel>>(JsonCache.subscriberServerDate.Value, ChannelsByName);
             }
         }
@@ -293,16 +317,14 @@ namespace TwixelEmotes
             return new EmoteResponse<Dictionary<string, Channel>>(JsonCache.subscriberServerDate.Value, ChannelsByName);
         }
 
-        public static async Task LoadSetsFromStream(Stream setsStream)
+        public static async Task LoadSetsFromString(string setsString, DateTime? setsTime)
         {
-            using (StreamReader reader = new StreamReader(setsStream))
-            {
-                JsonCache.setsString = await reader.ReadToEndAsync();
-                ChannelNameBySet.Clear();
-                DuplicateSets.Clear();
-                SetByChannelName.Clear();
-                LoadSets(JsonCache.setsString);
-            }
+            JsonCache.setsString = setsString;
+            JsonCache.setsLocalDate = setsTime;
+            ChannelNameBySet.Clear();
+            DuplicateSets.Clear();
+            SetByChannelName.Clear();
+            await RetrieveSets();
         }
 
         public static async Task<EmoteResponse<Dictionary<long, string>>> RetrieveSets()
@@ -333,6 +355,10 @@ namespace TwixelEmotes
             }
             else
             {
+                if (!JsonCache.setsServerDate.HasValue)
+                {
+                    return LoadSets(JsonCache.setsString);
+                }
                 return new EmoteResponse<Dictionary<long, string>>(JsonCache.setsServerDate.Value, ChannelNameBySet);
             }
         }
@@ -368,15 +394,13 @@ namespace TwixelEmotes
             return new EmoteResponse<Dictionary<long, string>>(JsonCache.setsServerDate.Value, ChannelNameBySet);
         }
 
-        public static async Task LoadImagesFromStream(Stream imagesStream)
+        public static async Task LoadImagesFromString(string imagesString, DateTime? imagesTime)
         {
-            using (StreamReader reader = new StreamReader(imagesStream))
-            {
-                JsonCache.imagesString = await reader.ReadToEndAsync();
-                emotes.Clear();
-                EmotesByCode.Clear();
-                LoadImages(JsonCache.imagesString);
-            }
+            JsonCache.imagesString = imagesString;
+            JsonCache.imagesLocalDate = imagesTime;
+            emotes.Clear();
+            EmotesByCode.Clear();
+            await RetrieveImages();
         }
 
         public static async Task<EmoteResponse<Dictionary<long, Emote>>> RetrieveImages()
@@ -406,6 +430,10 @@ namespace TwixelEmotes
             }
             else
             {
+                if (!JsonCache.imagesServerDate.HasValue)
+                {
+                    return LoadImages(JsonCache.imagesString);
+                }
                 return new EmoteResponse<Dictionary<long, Emote>>(JsonCache.imagesServerDate.Value, emotes);
             }
         }
@@ -448,22 +476,14 @@ namespace TwixelEmotes
             return new EmoteResponse<Dictionary<long, Emote>>(JsonCache.imagesServerDate.Value, emotes);
         }
 
-        public static async Task LoadBasicEmotesFromStream(Stream basicSet0Stream, Stream basicSet33Stream, Stream basicSet42Stream)
+        public static async Task LoadBasicEmotesFromString(string basicSet0String, string basicSet33String, string basicSet42String, DateTime? basicTime)
         {
-            using (StreamReader reader = new StreamReader(basicSet0Stream))
-            {
-                JsonCache.basic0String = await reader.ReadToEndAsync();
-            }
-            using (StreamReader reader = new StreamReader(basicSet33Stream))
-            {
-                JsonCache.basic33String = await reader.ReadToEndAsync();
-            }
-            using (StreamReader reader = new StreamReader(basicSet42Stream))
-            {
-                JsonCache.basic42String = await reader.ReadToEndAsync();
-            }
+            JsonCache.basic0String = basicSet0String;
+            JsonCache.basic33String = basicSet33String;
+            JsonCache.basic42String = basicSet42String;
+            JsonCache.basicLocalDate = basicTime;
             basicEmotes.Clear();
-            LoadBasicEmotes(JsonCache.basic0String, JsonCache.basic33String, JsonCache.basic42String);
+            await RetrieveBasicEmotes();
         }
 
         public static async Task<Dictionary<long, Emote>> RetrieveBasicEmotes()

@@ -37,6 +37,7 @@
     <Compile Include="Channel.cs" />
     <Compile Include="DuplicateSet.cs" />
     <Compile Include="Emote.cs" />
+    <Compile Include="EmoteDataCache.cs" />
     <Compile Include="EmoteManager.cs" />
     <Compile Include="EmoteResponse.cs" />
     <Compile Include="GlobalEmote.cs" />
