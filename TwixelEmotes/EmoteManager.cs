@@ -146,6 +146,7 @@ namespace TwixelEmotes
                 {
                     turboChannel42.Emotes.Add(basicEmote.Value);
                 }
+                emotes.Add(basicEmote.Key, basicEmote.Value);
             }
             turboChannel33.Link = ChannelsByName["turbo"].Link;
             turboChannel33.Description = ChannelsByName["turbo"].Description;
