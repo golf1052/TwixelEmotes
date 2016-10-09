@@ -148,12 +148,6 @@ namespace TwixelEmotes
                 }
                 emotes.Add(basicEmote.Key, basicEmote.Value);
             }
-            turboChannel33.Link = ChannelsByName["turbo"].Link;
-            turboChannel33.Description = ChannelsByName["turbo"].Description;
-            turboChannel33.Badge = ChannelsByName["turbo"].Badge;
-            turboChannel42.Link = ChannelsByName["turbo"].Link;
-            turboChannel42.Description = ChannelsByName["turbo"].Description;
-            turboChannel42.Badge = ChannelsByName["turbo"].Badge;
             ChannelsByName.Add("--global--", globalChannel);
             ChannelsBySet.Add(0, globalChannel);
             Channel superTurbo = new Channel();
